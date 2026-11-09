@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>LOS GALACTICOS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#fff;font-family:sans-serif;overflow:hidden;height:100vh}
+#escenario{position:fixed;top:0;left:0;width:100%;height:100%;background:#000}
+video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0}
+video.activo{opacity:1}
+#barra{position:fixed;bottom:0;left:0;width:100%;padding:12px;background:linear-gradient(transparent,rgba(0,0,0,0.85));text-align:center;z-index:10}
+#mic{font-size:20px;padding:18px 20px;width:100%;border-radius:50px;border:none;background:#FFD700;font-weight:bold}
+#mic.activo{background:#00C853;color:#fff}
+#texto{margin:10px 0;color:#FFD700;font-size:16px}
+.botones{display:flex;gap:10px;justify-content:center}
+.botones button{flex:1;background:#333;color:#fff;font-size:22px;font-weight:bold;padding:20px 10px;min-height:70px;border:none;border-radius:18px}
+.botones button:active{background:#FFD700;color:#000}
+</style>
+</head><body>
+<div id="escenario">
+  <video id="v1" playsinline loop muted preload="auto"></video>
+  <video id="v2" playsinline loop muted preload="auto"></video>
+</div>
+<div id="barra">
+  <button id="mic">TOCA UNA VEZ PARA ACTIVAR VOZ</button>
+  <div id="texto">Toca el boton para empezar...</div>
+  <div class="botones"><button onclick="playVideo('derecha')">DERECHA</button><button onclick="playVideo('izquierda')">IZQUIERDA</button><button onclick="playVideo('sonrisa')">SONRISA</button></div>
+</div>
+<script>
+const v1=document.getElementById('v1');const v2=document.getElementById('v2');
+const texto=document.getElementById('texto');const btn=document.getElementById('mic');
+let actual=v1;let otro=v2;let actualNombre='derecha';
+
+// Empieza de una vez, sin esperar a que carguen los 3
+v1.src='derecha.mp4';v1.loop=true;v1.muted=true;v1.volume=0;v1.classList.add('activo');v1.play();
+v1.onerror=()=>{texto.textContent='No encuentro derecha.mp4 - revisa que este en la misma carpeta';};
+// Precarga los otros 2 en segundo plano, sin bloquear
+let pre1=document.createElement('video');pre1.src='izquierda.mp4';pre1.preload='auto';pre1.muted=true;
+let pre2=document.createElement('video');pre2.src='sonrisa.mp4';pre2.preload='auto';pre2.muted=true;
+
+function playVideo(n){
+  if(n===actualNombre) return;
+  actualNombre=n;
+  otro.src=n+'.mp4';otro.loop=true;otro.muted=true;otro.volume=0;otro.currentTime=0;
+  otro.play().then(()=>{
+    otro.classList.add('activo');actual.classList.remove('activo');
+    actual.pause();
+    let tmp=actual;actual=otro;otro=tmp;
+    texto.textContent='Reproduciendo: '+n;
+  }).catch(()=>{texto.textContent='No encuentro '+n+'.mp4';});
+}
+let rec=null;
+function empezarVoz(){
+  const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!Rec){texto.textContent='Usa Firefox o Edge';return;}
+  rec=new Rec();rec.lang='es-PE';rec.continuous=true;rec.interimResults=false;
+  rec.onresult=(e)=>{const t=e.results[e.results.length-1][0].transcript.toLowerCase();if(t.includes('derecha'))playVideo('derecha');else if(t.includes('izquierda'))playVideo('izquierda');else if(t.includes('sonrisa'))playVideo('sonrisa');else if(t.includes('pausa')||t.includes('para'))actual.pause();};
+  rec.onend=()=>{try{rec.start();}catch(e){}};
+  rec.onerror=()=>{try{rec.start();}catch(e){}};
+  rec.start();btn.textContent='VOZ ACTIVADA - SOLO HABLA';btn.classList.add('activo');texto.textContent='Escuchando siempre...';
+}
+btn.onclick=empezarVoz;
+</script></body></html>
